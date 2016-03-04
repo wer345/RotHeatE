@@ -1,17 +1,21 @@
+import com.altheadx.pgx.utils.DataTable;
+
 import Jama.Matrix;
 
 
 public class HeatNet {
-	public int n;
-	public double a=0.2;	// W/K
-	public double m=0.6;	// g/s
-	public double Cp=0.8; // J/(g*K)
-	public double T_heater=700; 	//K
-	public double T_cooler=300;	//K
-	public double r=0.6;	// heater transfer rate of the midle metal W/K
+	public int n=20;
+	public double a=0.2;	// W/K heater transfer rate of fluid channel
+	public double m=0.6;	// g/s mass flow rate of fluid channel
+	public double Cp=0.8;	// J/(g*K) fluid heat capacity
+	public double T_heater=700;	// K  temperature of heater
+	public double T_cooler=300;	// K	 temperature of cooler
+	public double r=0.3;		// W/K heater transfer rate of the middle metal 
+	public double a_heater=0.6; // W/K heater transfer rate of the cooler
+	public double a_cooler=0.6; // W/K heater transfer rate of the cooler
 	
 	Matrix A,b;
-	int size;
+	int matrixSize;
 	
 	Heater [] exHs; // heaters on exchanger 
 	Heater [] exCs; // coolers on exchanger
@@ -33,22 +37,21 @@ public class HeatNet {
 		
 	}
 	
-	void init(int nodes)
+	void init()
 	{
-		this.n=nodes;
-		size=4*nodes+2;
-		A = new Matrix(size,size);
-		b = new Matrix(size,1);
-		exHs = new Heater[nodes];
-		exCs = new Heater[nodes];
-		for(int i=0;i<nodes;i++) {
+		matrixSize=4*n+2;
+		A = new Matrix(matrixSize,matrixSize);
+		b = new Matrix(matrixSize,1);
+		exHs = new Heater[n];
+		exCs = new Heater[n];
+		for(int i=0;i<n;i++) {
 			exHs[i]=new Heater(a,Cp,m);
 			exCs[i]=new Heater(a,Cp,m);
 		}
-		heater=new Heater(0.3,Cp,m);
-		heater.T=700;
-		cooler=new Heater(0.3,Cp,m);
-		cooler.T=300;
+		heater=new Heater(a_heater,Cp,m);
+		heater.T=T_heater;
+		cooler=new Heater(a_cooler,Cp,m);
+		cooler.T=T_cooler;
 		
 		int row=0;
 		// set cooler
@@ -93,33 +96,48 @@ public class HeatNet {
 		
 	}
 
+	void showT()
+	{
+		for(int i=0;i<=n;i++) 
+			System.out.printf("%6.2f ", T[i]);
+		System.out.printf("\n    ");
+		
+		for(int i=0;i<n;i++) 
+			System.out.printf("%6.2f ", T[n+1+i]);
+		System.out.printf("\n    ");
+		
+		for(int i=0;i<n;i++) 
+			System.out.printf("%6.2f ", T[2*n+1+i]);
+		System.out.printf("\n");
+		
+		for(int i=0;i<=n;i++) 
+			System.out.printf("%6.2f ", T[3*n+1+i]);
+		System.out.printf("\n\n");
+		
+		for(int i=0;i<=n;i++) 
+			System.out.printf("%6.2f ", T[3*n+1+i]-T[i]);
+		System.out.printf("\n");
+		
+		for(int node=1;node<=n;node++) {
+			exHs[node-1].setT(T[index(1,node)],T[index(1,node+1)],T[index(2,node)]);
+			exCs[node-1].setT(T[index(4,node+1)],T[index(4,node)],T[index(3,node)]);
+		}
+		
+		for(int node=1;node<=n;node++) 
+		System.out.printf("%6.2f ",exHs[node-1].getQ());
+		System.out.printf("\n");
+		
+		for(int node=1;node<=n;node++) 
+			System.out.printf("%6.2f ",r*(T[index(3,node)]-T[index(2,node)]));
+		System.out.printf("\n");
+		
+	}
+	
 	void solver() {
-	      Matrix X = A.solve(b);
-	      
-	      for(int i=0;i<=n;i++) {
-	    	  System.out.printf("%6.2f ", X.get(i,0));
-	      }
-	      System.out.printf("\n    ");
-
-	      for(int i=0;i<n;i++) {
-	    	  System.out.printf("%6.2f ", X.get(n+1+i,0));
-	      }
-	      System.out.printf("\n    ");
-	      
-	      for(int i=0;i<n;i++) {
-	    	  System.out.printf("%6.2f ", X.get(2*n+1+i,0));
-	      }
-	      System.out.printf("\n");
-
-	      for(int i=0;i<=n;i++) {
-	    	  System.out.printf("%6.2f ", X.get(3*n+1+i,0));
-	      }
-	      System.out.printf("\n\n");
-	      
-	      for(int i=0;i<=n;i++) {
-	    	  System.out.printf("%6.2f ", X.get(3*n+1+i,0)-X.get(i,0));
-	      }
-	      System.out.printf("\n");
+		Matrix X = A.solve(b);
+		T= new double[matrixSize];
+		for(int i=0;i<matrixSize;i++)
+			T[i]=X.get(i,0);
 
 	      cooler.setT(X.get(index(4,1),0),X.get(index(1,1),0),cooler.T);
 	      heater.setT(X.get(index(1,n+1),0),X.get(index(4,n+1),0),heater.T);
@@ -127,41 +145,110 @@ public class HeatNet {
 	    	  exHs[node-1].setT(X.get(index(1,node),0),X.get(index(1,node+1),0),X.get(index(2,node),0));
 	    	  exCs[node-1].setT(X.get(index(4,node+1),0),X.get(index(4,node),0),X.get(index(3,node),0));
 	      }
-	      
-	      for(int node=1;node<=n;node++) {
-		      System.out.printf("%6.2f ",exHs[node-1].getQ());
-	      }
-	      System.out.printf("\n");
+	}
+	
+	double getTempGap()
+	{
+		return T[index(4,1)]-T[index(1,1)];
+	}
+	
+	static void showAllResult()
+	{
+		HeatNet net=new HeatNet();
+		net.n=50;
+		net.init();
+		net.solver();
+		net.showT();
+		System.out.printf("temp gap=%6.2f\n", net.getTempGap());
+	}
 
-	      for(int node=1;node<=n;node++) {
-		      System.out.printf("%6.2f ",r*(X.get(index(3,node),0)-X.get(index(2,node),0)));
-	      }
-	      System.out.printf("\n");
-	      
-	      for(int node=1;node<=n;node++) {
-		      System.out.printf("%6.2f ",exCs[node-1].getQ());
-	      }
-	      System.out.printf("\n");
-	      
-	      System.out.printf("Q: Heater %6.2f, Cooler %6.2f\n",heater.getQ(),cooler.getQ());
-	      
+	static void plot_nodes_r()
+	{
+		HeatNet net=new HeatNet();
+		DataTable table = new DataTable();
+		int[] listNodes = {10,15,20,25,30,35,40,45,50};
+		double[] list_r ={0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.50};
+		int shift=list_r.length+5;
+
+		int row=1;
+		int col=1;
+		
+		for (int nodes:listNodes) {
+			table.SetItem(shift+col, row, " "+nodes);
+			table.SetItem(row, col++, " "+nodes);
+		}
+		
+		
+		for(double r:list_r) {
+			row++;
+			col=0;
+			table.SetItem(shift+col, row, " "+r);
+			table.SetItem(row, col++, " "+r);
+			net.r=r;
+			for (int nodes:listNodes) {
+				net.n=nodes;
+				net.init();
+				net.solver();
+				table.SetItem(shift+col, row, String.format(" %6.2f",net.getTempGap()));
+				table.SetItem(row, col++, String.format(" %6.2f",net.getTempGap()));
+			}
+		}
+		table.SaveToCSV("on_r.csv");
+	}
+
+	static void plot_a_r()
+	{
+		HeatNet net=new HeatNet();
+		DataTable table = new DataTable();
+		double[] list_a = {0.04, 0.045, 0.05, 0.055, 0.06, 0.065, 0.07, 0.075, 0.08};
+		double[] list_r ={0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.50};
+		int shift=list_r.length+5;
+
+		net.n=70;
+		net.m=0.4;
+		
+		int dups=6;
+		net.m*=dups;
+		for(int i=0;i<list_a.length;i++)
+			list_a[i]*=dups;
+		net.a_heater*=dups;
+		net.a_cooler*=dups;
+		
+		table.SetItem(0,0,String.format("mass flow=%6.2f g/s, number of node=%d", net.m,net.n));
+		table.SetItem(1,0,String.format("T: heater=%6.2fK , cooler =%6.2fK", net.T_heater,net.T_cooler));
+		table.SetItem(2,0,String.format("a: heater=%6.3fW/K , cooler =%6.3fW/K", net.a_heater,net.a_cooler));
+		int row=3;
+		int col=1;
+		
+		table.SetItem(row,0,"r\\a");
+		for (double a:list_a) {
+			//table.SetItem(shift+col, row, String.format(" %6.3f",a));
+			table.SetItem(row, col++, String.format(" %6.3f",a));
+		}
+		
+		
+		for(double r:list_r) {
+			row++;
+			col=0;
+			//table.SetItem(shift+col, row, String.format(" %6.3f",r));
+			table.SetItem(row, col++, String.format(" %6.3f",r));
+			net.r=r;
+			for (double a:list_a) {
+				net.a=a;
+				net.init();
+				net.solver();
+				//table.SetItem(shift+col, row, String.format(" %6.2f",net.getTempGap()));
+				table.SetItem(row, col++, String.format(" %6.2f",net.getTempGap()));
+			}
+		}
+		table.SaveToCSV("on_a_r.csv");
 	}
 	
 	public static void main(String[] args) {
-		HeatNet net=new HeatNet();
-		net.init(50);
-		net.solver();
-		
-//	      double[][] vals = {{1.,2.,3},{4.,5.,6.},{7.,8.,11.}};
-//	      Matrix A = new Matrix(vals);
-//	      System.out.printf("A=%s\n", A.toString());
-//	      Matrix b = Matrix.random(3,1);
-//	      System.out.printf("b=%s\n", b.toString());
-//	      Matrix x = A.solve(b);
-//	      System.out.printf("x=%s\n", x.toString());
-//	      Matrix r = A.times(x).minus(b);
-//	      System.out.printf("r=%s\n", r.toString());
-//	      double rnorm = r.normInf();
+		//showAllResult();
+		//plot_nodes_r();
+		plot_a_r();
+		System.out.printf("Done\n");
 	}
 
 }
