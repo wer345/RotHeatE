@@ -36,4 +36,5 @@ public class Heater {
 	double getQ() {
 		return a*(T-Tin);
 	}
+	
 }
