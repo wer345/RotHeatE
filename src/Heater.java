@@ -1,6 +1,9 @@
 
 public class Heater {
-	public double a, Cp, m, k;
+	public double a, // heat transfer rate W/K 
+		Cp,		// specific heat of flow J/(g*K) 
+		m, 		// mass flow rate g/s
+		k;		// internal data
 	public double Tin,Tout,T;
 	Heater(double a,double Cp, double m)
 	{

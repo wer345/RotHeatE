@@ -1,25 +1,6 @@
 
 public class GasProcess {
 
-	class State {
-		double P,T,
-		d; // density
-		
-		public State() {
-			P=100130;
-			T=300;
-		}
-		
-		State(double P,double T) {
-			this.P=P;
-			this.T=T;
-		}
-		
-		public String toString() {
-			return String.format("P=%6.0f Pa, T=%5.1fK",  P,T);
-		}
-	}
-	
 	double R=8.3144598;
 	double lamda = 1.0536;  // of C4F8
 	double	molMass = 0.20004; //kg/mol
@@ -59,9 +40,11 @@ public class GasProcess {
 	{
 		return density*distance*acc;
 	}
-
 	State [] compressor(double rpm, double r1, double r2, double P1,double T1) {
 		int segs=500; // the number of segment from r1 to r2
+		return compressor(rpm,r1,r2,P1,T1,segs);
+	}
+	State [] compressor(double rpm, double r1, double r2, double P1,double T1,int segs) {
 		State [] states= new State[segs+1];
 		states[0]=new State(P1,T1);
 		double rot=2*Math.PI*rpm/60;
@@ -80,7 +63,7 @@ public class GasProcess {
 	
 	static void test_1() {
 		GasProcess p= new GasProcess();
-		State s= p.new State(300000,300);
+		State s= new State(300000,300);
 		double density=p.getDensity(s);
 		System.out.printf("density=%f\n", density);
 		
@@ -93,7 +76,7 @@ public class GasProcess {
 		double power1=p.adiabaticPower(s, P2, 0.002);
 		System.out.printf("Cool side power is %f\n", power1);
 		
-		s= p.new State(300000,900);
+		s= new State(300000,900);
 		double power2=p.adiabaticPower(s, P2, 0.002);
 		System.out.printf("Hot side power is %f\n", power2);
 		

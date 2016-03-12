@@ -15,7 +15,7 @@ public class DataTable {
 	public List <List <String>> table;
 	public int rowSize;
 	public int columnSize;
-	public boolean numberEncoded=true; // if true, put character '~' in the front of a number cell when output to a file
+	public boolean numberEncoded=false; // if true, put character '~' in the front of a number cell when output to a file
 	public static int ERR_FileNotFound = 1;
 	public static int ERR_FileReadError = 2;
 	public static int ERR_NoFileDefined = 3;
@@ -77,6 +77,18 @@ public class DataTable {
 		return result;
 	}
 
+	public void SetItem(int rowIndex,int columnIndex,double value)
+	{
+		SetItem(rowIndex,  columnIndex,null, value);
+	}
+	
+	public void SetItem(int rowIndex,int columnIndex,String format,double value)
+	{
+		if(format==null)
+			format="";
+		SetItem(rowIndex,  columnIndex,String.format("%"+format+"f", value));
+	}
+	
 	public void SetItem(int rowIndex,int columnIndex,String value)
 	{
 		if(columnIndex>=columnSize)
