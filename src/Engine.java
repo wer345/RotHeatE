@@ -87,7 +87,7 @@ public class Engine {
 		double r2=0.2;
 		
 		double T_low=350;
-		double T_high=800;
+		double T_high=1000;
 		
 		double T_gap=40;
 		double P_drop=1000;
@@ -122,9 +122,15 @@ public class Engine {
 		Q=Cp*dT_compressor*mass*1000;
 //		System.out.printf("Temperature increase %6.2f, Q=%fW\n", dT, Q);
 
+		// Estimate state at expander input 
+		State s3Est = new State(s2.P-P_drop,T_high);
+		double s4_P_est= P_low+P_drop;
+		State s5=gp.adiabatic_P(s3Est,s4_P_est - s3Est.P);
+		double dT_expander=s5.T - T_high;
+		
 		HeaterArgon heater = new HeaterArgon(5);
 		HeatNetArgon net=new HeatNetArgon();
-		net.nodes=20;
+		net.nodes=40;
 		net.mass=mass;
 		net.T_heater=T_high;
 		net.T_cooler=T_low;
@@ -133,7 +139,7 @@ public class Engine {
 		net.a_cooler=net.a;
 		net.a_heater=net.a;
 		net.dT_compressor=dT_compressor;
-		net.dT_expander=-20;
+		net.dT_expander=dT_expander;
 		
 		net.init(); 
 		net.solver();
@@ -162,7 +168,7 @@ public class Engine {
 //		System.out.printf("Pressure diff=%6.3f\n",P4-Pin);
 
 		double P5=gp.Pin+gp.P_drop;
-		State s5=gp.adiabatic_P(s4,P5-P4);
+		s5=gp.adiabatic_P(s4,P5-P4);
 //		System.out.printf("s5 %s\n",s5);
 		
 		double power3 = -gp.adiabaticPower(s4, gp.Pin, gp.mass);

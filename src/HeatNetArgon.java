@@ -122,7 +122,11 @@ public class HeatNetArgon {
 		
 		for(int i=0;i<=nodes;i++) 
 			System.out.printf("%6.2f ", T[3*nodes+1+i]);
-		System.out.printf("\n\n");
+		System.out.printf("\n");
+
+		
+		System.out.printf("dT_compressor %6.3f, dT_expander %6.3f\n", dT_compressor, dT_expander);
+		System.out.printf("T cooler out %6.3f, T heater out %6.3f\n",cooler.Tout,heater.Tout);
 		
 		System.out.printf("T gap at nodes\n"); 
 		for(int i=0;i<=nodes;i++) 
@@ -152,8 +156,8 @@ public class HeatNetArgon {
 		for(int i=0;i<matrixSize;i++)
 			T[i]=X.get(i,0);
 
-	      cooler.setT(X.get(index(4,1),0),X.get(index(1,1),0),cooler.T);
-	      heater.setT(X.get(index(1,nodes+1),0),X.get(index(4,nodes+1),0),heater.T);
+	      cooler.setT(X.get(index(4,1),0),X.get(index(1,1),0) - dT_compressor,cooler.T);
+	      heater.setT(X.get(index(1,nodes+1),0),X.get(index(4,nodes+1),0) - dT_expander,heater.T);
 	      for(int node=1;node<=nodes;node++) {
 	    	  exHs[node-1].setT(X.get(index(1,node),0),X.get(index(1,node+1),0),X.get(index(2,node),0));
 	    	  exCs[node-1].setT(X.get(index(4,node+1),0),X.get(index(4,node),0),X.get(index(3,node),0));
