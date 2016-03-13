@@ -41,7 +41,7 @@ public class Engine {
 				
 				t.SetItem(row,col++,String.format("%6.3f", net.getTempGap()));
 	
-				System.out.printf("temp gap=%6.2f\n", net.getTempGap());
+				L.p("temp gap=%6.2f\n", net.getTempGap());
 			}
 			row++;
 		}
@@ -90,116 +90,158 @@ public class Engine {
 		double T_high=1000;
 		
 		double T_gap=40;
-		double P_drop=1000;
+		double P_drop=100;
 		
 		
 		gp.lamda=1.667; //Argon
 		gp.molMass=0.039948;
-		double Q;
 		double dT;
 		double dP;
-		double Cp;
+		double Cp=0.52;
 
 		gp.lamda=1.667; //Argon
 		gp.molMass=0.039948;
 		
-		State [] states = gp.compressor(rpm, r1,r2,P_low,T_low);
-		int segs=states.length;
-		State s1=states[0];
-		State s2=states[segs-1];
+		double mass=0.9;
+		State [] states;
+		double P2=0,T2=0;
+		int segs=0;
+		State s4;
 		
-		double mass=0.5;
+		double T_compressor_in=T_low;
+		double T_expander_in=T_high;
+		int loopSize=8;
+		double power1=0;
+		State s3=null;
+		double P4_est=0;
+		HeatNetArgon net=null;
+		double dT_compressor=0;
+		double dT_expander=0;
 		
-		double P2=s2.P;
-		double T2=s2.T;
-		System.out.printf("s1= %s\n", s1);
-		System.out.printf("s2= %s\n", s2);
+		// Find heat balance for the temperature increase of compressor and decrease of expander
 		
-		double power1=gp.adiabaticPower(states[0], P2, mass);
-		System.out.printf("Cold wheel power is %f\n", power1);
-		double dT_compressor=T2-T_low;
-		Cp=0.52;  
-		Q=Cp*dT_compressor*mass*1000;
-//		System.out.printf("Temperature increase %6.2f, Q=%fW\n", dT, Q);
+		L.off();
+		for(int loop=1;loop<=loopSize;loop++)
+		{
+			//if(loop==loopSize)
+			//	L.on();
 
-		// Estimate state at expander input 
-		State s3Est = new State(s2.P-P_drop,T_high);
-		double s4_P_est= P_low+P_drop;
-		State s5=gp.adiabatic_P(s3Est,s4_P_est - s3Est.P);
-		double dT_expander=s5.T - T_high;
-		
-		HeaterArgon heater = new HeaterArgon(5);
-		HeatNetArgon net=new HeatNetArgon();
-		net.nodes=40;
-		net.mass=mass;
-		net.T_heater=T_high;
-		net.T_cooler=T_low;
-		
-		net.a=heater.get_A_f_m(mass);
-		net.a_cooler=net.a;
-		net.a_heater=net.a;
-		net.dT_compressor=dT_compressor;
-		net.dT_expander=dT_expander;
-		
-		net.init(); 
-		net.solver();
-		net.showT();
-		
-		double cold_in=net.get_T(1, 1);
-		System.out.printf("temp cold in =%6.2f\n", cold_in);
-		System.out.printf("temp gap=%6.2f\n", net.getTempGap());
-		System.out.printf("temp cold in =%6.2f\n", cold_in);
+			L.p("========== Loop %d ==========\n",loop);
+			states = gp.compressor(rpm, r1,r2, P_low, T_compressor_in);
+			segs=states.length;
+			State s1=states[0];
+			State s2=states[segs-1];
+			
+			
+			P2=s2.P;
+			T2=s2.T;
+			L.p("s1= %s\n", s1);
+			L.p("s2= %s\n", s2);
+			
+			power1=gp.adiabaticPower(states[0], P2, mass);
+			L.p("Compressor power is %6.2f\n", power1);
+			dT_compressor=T2-T_compressor_in;
+			
+			L.p("Compressor temperature increase %6.2f\n", dT_compressor);
+	
+			// Estimate state at expander input 
+			s3 = new State(s2.P - P_drop,T_expander_in);
+			
+			L.p("Expander input state = %s\n", s3);
+			P4_est= P_low + P_drop;
+			s4=gp.adiabatic_P(s3,P4_est);
+			
+			L.p("Expander output state = %s\n", s4);
+			dT_expander = s4.T - T_expander_in;
+			L.p("Expander Temperature drop = %5.2f\n", dT_expander);
+			
+			HeaterArgon heater = new HeaterArgon(5);
+			net=new HeatNetArgon();
+			
+			net.nodes=40;
+			net.mass=mass;
+			net.T_heater=T_high;
+			net.T_cooler=T_low;
+			
+			net.a=heater.get_A_f_m(mass);
+			net.a_cooler = net.a;
+			net.a_heater = net.a;
+			net.dT_compressor=dT_compressor;
+			net.dT_expander=dT_expander;
+			
+			net.init(); 
+			net.solver();
+			net.showT();
 
-		
-		double T3=T_high;
-		double P3=P2-P_drop;
-		states = gp.compressor(rpm, r2, r1, P3,T3);
-		State s3=states[0];
-		State s4=states[segs-1];
-		
-		double P4=s4.P;
-		double T4=s4.T;
-		
-//		System.out.printf("s3 %s\n",s3);
-//		System.out.printf("s4 %s\n",s4);
+			double T_reg_HeaterIn=net.get_T(1, 1);
+			double T_reg_HeaterOut=net.get_T(1, net.nodes);
+			double T_reg_CoolerIn=net.get_T(4, net.nodes);
+			double T_reg_CoolerOut=net.get_T(4, 1);
+			L.p("T reg_HeaterIn = %6.2f\n", T_reg_HeaterIn);
+			L.p("T reg_HeaterOut = %6.2f\n", T_reg_HeaterOut);
+			L.p("T reg_CoolerIn = %6.2f\n", T_reg_CoolerIn);
+			L.p("T reg_CoolerOut = %6.2f\n", T_reg_CoolerOut);
+			L.p("T gap = %6.2f\n", net.getTempGap());
+			//L.p("temp cold in =%6.2f\n", cold_in);
 
-		double power2=gp.adiabaticPower(s3, P4, mass);
-//		System.out.printf("Hot wheel power is %f\n", power2);
-//		System.out.printf("Pressure diff=%6.3f\n",P4-Pin);
+			T_compressor_in = net.cooler.Tout;
+			T_expander_in = net.heater.Tout;
+			
+			L.p("T CoolerOut = %6.2f\n", T_compressor_in);
+			L.p("T HeaterOut = %6.2f\n", T_expander_in);
 
-		double P5=gp.Pin+gp.P_drop;
-		s5=gp.adiabatic_P(s4,P5-P4);
-//		System.out.printf("s5 %s\n",s5);
-		
-		double power3 = -gp.adiabaticPower(s4, gp.Pin, gp.mass);
-//		System.out.printf("Net power output %f\n", power3);
-		
-		dT=gp.T_high-s5.T+gp.T_gap;
-		
-		Q=Cp*dT*mass*1000;
-		double efficiency=100*power3/Q;
-//		System.out.printf("dT=%6.3f Q=%5.2f, efficiency=%5.2f\n", dT,Q,efficiency);
-		
-		// find the speed of expander
-		double r=rpm;
-		while(r<2*rpm) {
-			states = gp.compressor(r, r2, r1, s3.P,s3.T);
-			P4=states[segs-1].P;
-			//System.out.printf("rpm=%6.0f, P4=%6.0f\n",r,P4);
-			if(P4>P_low)
-				r+=0.01*rpm;
-			else
-				break;
+			L.p("Cooler = %s\n", net.cooler);
+			L.p("Heater = %s\n", net.heater);
+			
+			
 		}
-//		System.out.printf("Expander rpn=%6.0f\n",r);
-//		System.out.printf("rpm diff=%6.0f, velocity diff at r2 %5.2f\n",r-rpm,2*Math.PI*r2*(r-rpm)/60);
+		L.p("========== Loop End ==========\n");
+		L.on();
+		net.showT();
+		double power2=gp.adiabaticPower(s3, P4_est, mass);
+		L.p("Compressor power is %6.2f\n", power1);
+		L.p("Expander power is %6.2f\n", power2);
+		L.p("Expander Temperature drop = %5.2f, Qexp=%6.3f\n", dT_expander,Cp*mass*dT_expander);
+		
+		double netPower=power2+power1;
+		L.p("Net power is %6.3f\n", netPower);
+		double Qheater=net.heater.getQ();
+		double Qcooler=net.cooler.getQ();
+		
+		double efficiency=100*netPower/Qheater;
+		L.p(" Qheater=%5.2f, Qcooler=%5.2f, efficiency=%5.2f\n", Qheater, Qcooler, efficiency);
+
+
+		L.p("Cooler = %s\n", net.cooler);
+		T_compressor_in = net.cooler.Tout;
+		
+		double T_reg_HeaterIn=net.get_T(1, 1);
+		L.p("T reg_HeaterIn = %6.2f\n", T_reg_HeaterIn);
+		dT=T_reg_HeaterIn-T_compressor_in;
+		double Qcomp=Cp*mass*(dT);
+		L.p("dTcomp=%6.2f, Qcomp = %6.2f\n", dT, Qcomp);
+		Qcomp=Cp*mass*(dT_compressor);
+		L.p("dTcomp=%6.2f, Qcomp = %6.2f\n", dT_compressor, Qcomp);
+		
+		double T_expander_out=net.get_T(4, net.nodes+1);
+		L.p("T reg_CoolerIn = %6.2f\n", T_expander_out);
+		L.p("Heater = %s\n", net.heater);
+
+		T_expander_in = net.heater.Tout;
+		L.p("T expander in = %6.2f\n", T_expander_in);
+		L.p("T expander out = %6.2f\n", T_expander_out);
+
+		dT=T_expander_in-T_expander_out;
+		double Qexp=Cp*mass*(dT);
+		L.p("dTexp=%6.2f, Qexp = %6.3f\n", dT, Qexp);
+		L.p("Qdiff = %6.3f\n", net.heater.getQ() + net.cooler.getQ());
 	}
 	
 	public static void main(String[] args) {
 		//tableTempGap();
 		//table_Compressor();
 		table_power();
-		System.out.printf("Done\n");
+		L.p("Done\n");
 	}
 
 }

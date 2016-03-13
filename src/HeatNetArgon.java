@@ -19,12 +19,30 @@ public class HeatNetArgon {
 	Matrix A,b;
 	int matrixSize;
 	
-	Heater [] exHs; // heaters on exchanger 
-	Heater [] exCs; // coolers on exchanger
+	public Heater [] exHs; // heaters on exchanger 
+	public Heater [] exCs; // coolers on exchanger
 	
 	Heater heater,cooler;
 	
 	double[] T;
+	
+	/**
+	 *  Get the heater on the regenerator, index of the first heater is 1
+	 * @param index
+	 * @return
+	 */
+	Heater get_exHeater(int index) {
+		return exHs[index-1];
+	}
+	
+	/**
+	 * Get the cooler on the regenerator, index of the first cooler is 1
+	 * @param index
+	 * @return
+	 */
+	Heater get_exCooler(int index) {
+		return exCs[index-1];
+	}
 	
 	int index(int level,int position)
 	{
@@ -109,44 +127,44 @@ public class HeatNetArgon {
 	void showT()
 	{
 		for(int i=0;i<=nodes;i++) 
-			System.out.printf("%6.2f ", T[i]);
-		System.out.printf("\n    ");
+			L.p("%6.2f ", T[i]);
+		L.p("\n    ");
 		
 		for(int i=0;i<nodes;i++) 
-			System.out.printf("%6.2f ", T[nodes+1+i]);
-		System.out.printf("\n    ");
+			L.p("%6.2f ", T[nodes+1+i]);
+		L.p("\n    ");
 		
 		for(int i=0;i<nodes;i++) 
-			System.out.printf("%6.2f ", T[2*nodes+1+i]);
-		System.out.printf("\n");
+			L.p("%6.2f ", T[2*nodes+1+i]);
+		L.p("\n");
 		
 		for(int i=0;i<=nodes;i++) 
-			System.out.printf("%6.2f ", T[3*nodes+1+i]);
-		System.out.printf("\n");
+			L.p("%6.2f ", T[3*nodes+1+i]);
+		L.p("\n");
 
 		
-		System.out.printf("dT_compressor %6.3f, dT_expander %6.3f\n", dT_compressor, dT_expander);
-		System.out.printf("T cooler out %6.3f, T heater out %6.3f\n",cooler.Tout,heater.Tout);
+		L.p("dT_compressor %6.3f, dT_expander %6.3f\n", dT_compressor, dT_expander);
+		L.p("T cooler out %6.3f, T heater out %6.3f\n",cooler.Tout,heater.Tout);
 		
-		System.out.printf("T gap at nodes\n"); 
+		L.p("T gap at nodes\n"); 
 		for(int i=0;i<=nodes;i++) 
-			System.out.printf("%6.2f ", T[3*nodes+1+i]-T[i]);
-		System.out.printf("\n");
+			L.p("%6.2f ", T[3*nodes+1+i]-T[i]);
+		L.p("\n");
 		
 		for(int node=1;node<=nodes;node++) {
 			exHs[node-1].setT(T[index(1,node)],T[index(1,node+1)],T[index(2,node)]);
 			exCs[node-1].setT(T[index(4,node+1)],T[index(4,node)],T[index(3,node)]);
 		}
 		
-		System.out.printf("Q at nodes\n"); 
+		L.p("Q at nodes\n"); 
 		for(int node=1;node<=nodes;node++) 
-			System.out.printf("%6.2f ",exHs[node-1].getQ());
-		System.out.printf("\n");
+			L.p("%6.2f ",exHs[node-1].getQ());
+		L.p("\n");
 		
-		System.out.printf("Temp diff at links\n"); 
+		L.p("Temp diff at links\n"); 
 		for(int node=1;node<=nodes;node++) 
-			System.out.printf("%6.2f ",linkRes*(T[index(3,node)]-T[index(2,node)]));
-		System.out.printf("\n");
+			L.p("%6.2f ",linkRes*(T[index(3,node)]-T[index(2,node)]));
+		L.p("\n");
 		
 	}
 	
@@ -177,7 +195,7 @@ public class HeatNetArgon {
 		net.init();
 		net.solver();
 		net.showT();
-		System.out.printf("temp gap=%6.2f\n", net.getTempGap());
+		L.p("temp gap=%6.2f\n", net.getTempGap());
 	}
 
 	static void plot_nodes_r()
@@ -266,7 +284,7 @@ public class HeatNetArgon {
 		showAllResult();
 		//plot_nodes_r();
 		//plot_a_r();
-		System.out.printf("Done\n");
+		L.p("Done\n");
 	}
 
 }

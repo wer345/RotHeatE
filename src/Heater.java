@@ -5,6 +5,13 @@ public class Heater {
 		m, 		// mass flow rate g/s
 		k;		// internal data
 	public double Tin,Tout,T;
+	
+	public String toString()
+	{
+		String txt=String.format("%6.2f->%6.2f[%6.2f]Q=%7.3f(A=%f,dT=%6.2f)", Tin,Tout,T,getQ(),a, Tout-Tin);
+		return txt;
+	}
+	
 	Heater(double a,double Cp, double m)
 	{
 		this.a=a;
