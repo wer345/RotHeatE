@@ -1,4 +1,4 @@
-package com.altheadx.pgx.utils;
+package utils;
 
 public class Log {
 	public static int UnknownError=0;

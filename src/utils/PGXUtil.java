@@ -1,4 +1,4 @@
-package com.altheadx.pgx.utils;
+package utils;
 
 public class PGXUtil {
 	
