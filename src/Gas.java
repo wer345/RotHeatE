@@ -7,13 +7,32 @@ public class Gas {
 		lamda
 	;
 
+	double Tref=300;
+	double uRef=0;
+	double hRef=0;
+	
 	public Gas() {
+	}
+	
+	public void set(double Cp,double Cv) {
+		this.Cp=Cp;
+		this.Cv=Cv;
+		R=Cp-Cv;
+		lamda=Cp/Cv;
+	}
+	
+	public void setRef(double T,double u,double h) {
+		Tref=T;
+		uRef=u;
+		hRef=h;
 	}
 	
 	public Gas(String gasName) {
 		this.gasName=gasName;
-		if(gasName.equalsIgnoreCase("air")) 
-			set(1010,	718);
+		if(gasName.equalsIgnoreCase("air")) { 
+			set(1029,	742);
+			setRef(500,359.8,503.3);
+		}
 		else if(gasName.equalsIgnoreCase("Argon") || gasName.equalsIgnoreCase("Ar")) 
 			set(520,	312);
 		else if(gasName.equalsIgnoreCase("Carbon dioxide") ||gasName.equalsIgnoreCase("CO2")) 
@@ -35,17 +54,19 @@ public class Gas {
 		return rst;
 	}
 	
-	public void set(double Cp,double Cv) {
-		this.Cp=Cp;
-		this.Cv=Cv;
-		R=Cp-Cv;
-		lamda=Cp/Cv;
-	}
 	
 	public double getDensity(GasState s)
 	{
 		double d=s.P/(R*s.T);
 		return d;
+	}
+
+	public double get_u(double T) {
+		return uRef+Cv*(T-Tref);
+	}
+
+	public double get_h(double T) {
+		return hRef+Cp*(T-Tref);
 	}
 	
 	double adiabaticPowerPerVolume(GasState s,double P2, double V1)
