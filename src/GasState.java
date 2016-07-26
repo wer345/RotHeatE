@@ -1,17 +1,15 @@
 
-public class State {
-	public static double R=8.3144598;
-
+public class GasState {
 	double P,
 	T,
 	d; // density
 	
-	public State() {
+	public GasState() {
 		P=100130;
 		T=300;
 	}
 	
-	public State(double P,double T) {
+	public GasState(double P,double T) {
 		this.P=P;
 		this.T=T;
 	}

@@ -1,13 +1,12 @@
 
 public class GasProcess {
 
-	double R=8.3144598;
 	double lamda = 1.0536;  // of C4F8
 	double	molMass = 0.20004; //kg/mol
 	
 	double getDensity(State s)
 	{
-		double d=molMass*s.P/(R*s.T);
+		double d=molMass*s.P/(State.R*s.T);
 		return d;
 	}
 	/**
@@ -18,6 +17,7 @@ public class GasProcess {
 		
 	}
 	
+	//get state of adiabatic process to a new pressure
 	State adiabatic_P(State s,double P)
 	{
 		double P2=P;
@@ -26,6 +26,13 @@ public class GasProcess {
 		return rst;
 	}
 
+	double adiabaticPowerPerVolume(State s,double P2, double V1)
+	{
+		double k=(lamda-1)/lamda;
+		double power=s.P*V1/k*(Math.pow(P2/s.P, k)-1);
+		return power;
+	}
+	
 	//Open system
 	/**
 	 * get the power of adiabatic process
@@ -34,13 +41,14 @@ public class GasProcess {
 	 * @param mass -- the speed of mass, g/s
 	 * @return
 	 */
-	double adiabaticPower(State s,double P2, double mass)
+	double adiabaticPowerPerMass(State s,double P2, double mass)
 	{
 		double density=getDensity(s);
-		double V1=0.001*mass/density;
-		double k=(lamda-1)/lamda;
-		double power=s.P*V1/k*(Math.pow(P2/s.P, k)-1);
-		return power;
+		double V1=mass/density;
+		return adiabaticPowerPerVolume(s,P2,V1);
+//		double k=(lamda-1)/lamda;
+//		double power=s.P*V1/k*(Math.pow(P2/s.P, k)-1);
+//		return power;
 	}
 	
 	double acc_pressure(double acc,double distance,double density)
@@ -51,6 +59,7 @@ public class GasProcess {
 		int segs=500; // the number of segment from r1 to r2
 		return compressor(rpm,r1,r2,P1,T1,segs);
 	}
+	
 	State [] compressor(double rpm, double r1, double r2, double P1,double T1,int segs) {
 		State [] states= new State[segs+1];
 		states[0]=new State(P1,T1);
@@ -80,11 +89,11 @@ public class GasProcess {
 		System.out.printf("new state is %s\n", s1);
 		double P1=s.P;
 		double P2=P1+dp;
-		double power1=p.adiabaticPower(s, P2, 0.002);
+		double power1=p.adiabaticPowerPerMass(s, P2, 0.002);
 		System.out.printf("Cool side power is %f\n", power1);
 		
 		s= new State(300000,900);
-		double power2=p.adiabaticPower(s, P2, 0.002);
+		double power2=p.adiabaticPowerPerMass(s, P2, 0.002);
 		System.out.printf("Hot side power is %f\n", power2);
 		
 		System.out.printf("Net power is %f\n", power2-power1);
@@ -111,7 +120,7 @@ public class GasProcess {
 		
 		double P2=states[segs-1].P;
 		double T2=states[segs-1].T;
-		double power1=adiabaticPower(states[0], P2, mass);
+		double power1=adiabaticPowerPerMass(states[0], P2, mass);
 		System.out.printf("Cool side power is %f\n", power1);
 		System.out.printf("P2= %6.0f, T2=%6.2f\n", P2,T2);
 		dT=T2-T_low;
@@ -132,13 +141,13 @@ public class GasProcess {
 		double T3=s3.T;
 		System.out.printf("state at hot %s\n",s3);
 		System.out.printf("P3= %6.0f, T3=%6.2f\n", P3,T3);
-		double power2=adiabaticPower(states[0], P3, mass);
+		double power2=adiabaticPowerPerMass(states[0], P3, mass);
 		System.out.printf("Hot side power is %f\n", power2);
 		System.out.printf("P3-Pin=%6.3f\n",P3-Pin);
 
 		double P4=Pin;
 		State s4=adiabatic_P(s3,P4);
-		double power3=adiabaticPower(s3, P4, mass);
+		double power3=adiabaticPowerPerMass(s3, P4, mass);
 		System.out.printf("Net power output %f\n", power3);
 		System.out.printf("P4= %6.0f, T4=%6.2f\n", P4,s4.T);
 		dT=T_high-s4.T+T_gap;
@@ -211,7 +220,7 @@ public class GasProcess {
 //		System.out.printf("s1= %s\n", s1);
 //		System.out.printf("s2= %s\n", s2);
 		
-		double power1=adiabaticPower(states[0], P2, mass);
+		double power1=adiabaticPowerPerMass(states[0], P2, mass);
 //		System.out.printf("Cold wheel power is %f\n", power1);
 		dT=T2-T_low;
 		Cp=0.52;  
@@ -229,7 +238,7 @@ public class GasProcess {
 //		System.out.printf("s3 %s\n",s3);
 //		System.out.printf("s4 %s\n",s4);
 
-		double power2=adiabaticPower(s3, P4, mass);
+		double power2=adiabaticPowerPerMass(s3, P4, mass);
 //		System.out.printf("Hot wheel power is %f\n", power2);
 //		System.out.printf("Pressure diff=%6.3f\n",P4-Pin);
 
@@ -237,7 +246,7 @@ public class GasProcess {
 		State s5=adiabatic_P(s4,P5);
 //		System.out.printf("s5 %s\n",s5);
 		
-		double power3 = -adiabaticPower(s4, Pin, mass);
+		double power3 = -adiabaticPowerPerMass(s4, Pin, mass);
 //		System.out.printf("Net power output %f\n", power3);
 		
 		dT=T_high-s5.T+T_gap;
@@ -279,7 +288,7 @@ public class GasProcess {
 		molMass=0.039948;
 		s2 = adiabatic_P(s1,s1.P+dP);
 		System.out.printf("lamda=%f,S2=%s\n", lamda,s2);
-		double power1=adiabaticPower(s1,P1+dP,mass);
+		double power1=adiabaticPowerPerMass(s1,P1+dP,mass);
 		System.out.printf("power1 = %fW\n",power1);
 		double dT=s2.T-s1.T;
 		double Cp=0.52; // J/(g*K)
@@ -292,7 +301,7 @@ public class GasProcess {
 		State s4 = adiabatic_P(s3,s3.P+dP);
 		System.out.printf("s3=%s\n", s3);
 		System.out.printf("s4=%s\n", s4);
-		double power2=adiabaticPower(s3,P3+dP,mass);
+		double power2=adiabaticPowerPerMass(s3,P3+dP,mass);
 		System.out.printf("power2 = %fW\n",power2);
 		System.out.printf("dPower=%fW\n",power2-power1);
 	}

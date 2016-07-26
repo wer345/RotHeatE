@@ -139,7 +139,7 @@ public class Engine {
 			L.p("s1= %s\n", s1);
 			L.p("s2= %s\n", s2);
 			
-			power1=gp.adiabaticPower(states[0], P2, mass);
+			power1=gp.adiabaticPowerPerMass(states[0], P2, mass);
 			L.p("Compressor power is %6.2f\n", power1);
 			dT_compressor=T2-T_compressor_in;
 			
@@ -199,7 +199,7 @@ public class Engine {
 		L.p("========== Loop End ==========\n");
 		L.on();
 		net.showT();
-		double power2=gp.adiabaticPower(s3, P4_est, mass);
+		double power2=gp.adiabaticPowerPerMass(s3, P4_est, mass);
 		L.p("Compressor power is %6.2f\n", power1);
 		L.p("Expander power is %6.2f\n", power2);
 		L.p("Expander Temperature drop = %5.2f, Qexp=%6.3f\n", dT_expander,Cp*mass*dT_expander);
